@@ -16,6 +16,7 @@ import {
   sepolia,
   baseSepolia,
 } from "viem/chains"
+import * as chains from "viem/chains"
 import { Chain } from "viem"
 
 import Multiclient from "./MultiClient.js"
@@ -25,29 +26,14 @@ import WormholeReporterController from "./controllers/WormholeReporterController
 import Coordinator from "./Coordinator.js"
 import { settings } from "./settings/index.js"
 import logger from "./utils/logger.js"
+import readOracleAddress from "./utils/readAddress.js"
 
-const main = () => {
+const main = async () => {
   const controllersEnabled = process.env.REPORTERS_ENABLED?.split(",")
 
   const sourceChainId = Number(process.env.SOURCE_CHAIN_ID)
   const destinationChainIds = process.env.DESTINATION_CHAIN_IDS?.split(",").map((_chainId) => Number(_chainId))
-  const chains = [
-    arbitrum,
-    avalanche,
-    arbitrumSepolia,
-    base,
-    bsc,
-    bscTestnet,
-    gnosis,
-    gnosisChiado,
-    goerli,
-    optimism,
-    optimismGoerli,
-    polygon,
-    mainnet,
-    sepolia,
-    baseSepolia,
-  ]
+
   const sourceChain: Chain = Object.values(chains).find((_chain) => _chain.id === sourceChainId) as Chain
   const destinationChains: Chain[] = Object.values(chains).filter((_chain) => destinationChainIds?.includes(_chain.id))
   const unidirectionalAdaptersAddresses = settings.contractAddresses.adapterAddresses.unidirectional as any
@@ -167,24 +153,8 @@ const main = () => {
     destinationChains,
     logger,
     multiClient,
-    reporterAddresses: {
-      [polygon.name]: unidirectionalReportersAddresses[sourceChain.name]?.[polygon.name]?.LayerZeroReporter,
-      [bsc.name]: unidirectionalReportersAddresses[sourceChain.name]?.[bsc.name]?.LayerZeroReporter,
-      [gnosis.name]: unidirectionalReportersAddresses[sourceChain.name]?.[gnosis.name]?.LayerZeroReporter,
-      [base.name]: unidirectionalReportersAddresses[sourceChain.name]?.[base.name]?.LayerZeroReporter,
-      [optimism.name]: unidirectionalReportersAddresses[sourceChain.name]?.[optimism.name]?.LayerZeroReporter,
-      [arbitrum.name]: unidirectionalReportersAddresses[sourceChain.name]?.[arbitrum.name]?.LayerZeroReporter,
-      [baseSepolia.name]: unidirectionalReportersAddresses[sourceChain.name]?.[baseSepolia.name]?.LayerZeroReporter,
-    },
-    adapterAddresses: {
-      [polygon.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[polygon.name]?.LayerZeroAdapter,
-      [bsc.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[bsc.name]?.LayerZeroAdapter,
-      [gnosis.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[gnosis.name]?.LayerZeroAdapter,
-      [base.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[base.name]?.LayerZeroAdapter,
-      [optimism.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[optimism.name]?.LayerZeroAdapter,
-      [arbitrum.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[arbitrum.name]?.LayerZeroAdapter,
-      [baseSepolia.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[baseSepolia.name]?.LayerZeroAdapter,
-    },
+    reporterAddresses: await readOracleAddress("layerzero", "reporter", sourceChain, destinationChains),
+    adapterAddresses: await readOracleAddress("layerzero", "adapter", sourceChain, destinationChains),
     reportHeadersValue: settings.reporterControllers.LayerZeroReporterController.reportHeadersValue,
   })
 

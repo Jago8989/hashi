@@ -1,0 +1,59 @@
+import axios from "axios"
+import { Chain } from "viem"
+import { parse } from "yaml"
+
+const getValue = (key: string, obj: any) => {
+  key = key.toLowerCase().replace(/\s+/g, "") // Normalize key
+  for (const originalKey of Object.keys(obj)) {
+    const normalizedKey = originalKey.toLowerCase().replace(/_/g, "").replace(/\s+/g, "") // Normalize existing keys
+    console.log("normaled key", normalizedKey)
+    if (normalizedKey === key) {
+      return obj[originalKey] // Return corresponding value
+    }
+  }
+  return null // Return null if key is not found
+}
+
+const filterUnmatchChainName = (chainName: string) => {
+  if (chainName == "OP Mainnet") {
+    return "optimism"
+  } else if (chainName == "OP Sepolia") {
+    return "optimismSepolia"
+  } else if (chainName == "BNB Smart Chain") {
+    return "bnb"
+  } else return chainName
+}
+
+const concatOracleName = (oracleName: string) => {
+  if (oracleName == "layerzero") {
+    return "lz"
+  } // TODO
+}
+async function readOracleAddress(oracle: string, type: string, sourceChain: Chain, destinationChains: Chain[]) {
+  const url = `https://raw.githubusercontent.com/crosschain-alliance/hashi-registry/refs/heads/main/oracles/${oracle}/address.yaml`
+
+  const response = await axios.get(url)
+  const data = parse(response.data)
+
+  const oracleAddress: { [chainName: string]: `0x${string}` } = {}
+  if (type == "reporter") {
+    destinationChains.forEach((chains) => {
+      oracleAddress[chains.name] = getValue(
+        `${filterUnmatchChainName(sourceChain.name)}` + `${concatOracleName(oracle)}` + `${type}`,
+        data,
+      )
+    })
+  } else if (type == "adapter") {
+    destinationChains.forEach((chains) => {
+      console.log("chain ", chains.name)
+      oracleAddress[chains.name] = getValue(
+        `${filterUnmatchChainName(chains.name)}` + `${concatOracleName(oracle)}` + `${type}`,
+        data,
+      )
+    })
+  }
+
+  return oracleAddress
+}
+
+export default readOracleAddress
