@@ -9,7 +9,7 @@ import WormholeReporterController from "./controllers/WormholeReporterController
 
 import Coordinator from "./Coordinator"
 import { settings } from "./settings/index"
-import getOracleAddress from "./utils/readAddress"
+import getOracleAddress from "./utils/getOracleAddress"
 ;(async () => {
   const controllersEnabled = process.env.REPORTERS_ENABLED?.split(",")
 
@@ -18,7 +18,6 @@ import getOracleAddress from "./utils/readAddress"
 
   const sourceChain: Chain = Object.values(chains).find((_chain) => _chain.id === sourceChainId) as Chain
   const destinationChains: Chain[] = Object.values(chains).filter((_chain) => destinationChainIds?.includes(_chain.id))
-
   const lightClientAddresses = settings.contractAddresses.lightClientAddresses as any
 
   const multiClient = new Multiclient({

@@ -6,7 +6,6 @@ const normalizedValue = (key: string, obj: any) => {
   key = key.toLowerCase().replace(/\s+/g, "") // Normalize key
   for (const originalKey of Object.keys(obj)) {
     const normalizedKey = originalKey.toLowerCase().replace(/_/g, "").replace(/\s+/g, "") // Normalize existing keys
-    console.log("normaled key", normalizedKey)
     if (normalizedKey === key) {
       return obj[originalKey] // Return corresponding value
     }
@@ -34,8 +33,19 @@ const concatOracleName = (oracleName: string) => {
 async function getOracleAddress(oracle: string, type: string, sourceChain: Chain, destinationChains: Chain[]) {
   const url = `https://raw.githubusercontent.com/crosschain-alliance/hashi-registry/refs/heads/main/oracles/${oracle}/address.yaml`
 
-  const response = await axios.get(url)
-  const data = parse(response.data)
+  let data: any
+  try {
+    const response = await axios.get(url)
+    data = parse(response.data)
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      console.warn(`File not found at ${url}, returning empty oracleAddress.`)
+      return {} // Return empty object if file not found
+    } else {
+      console.error(`Error fetching ${url}:`, error)
+      throw error // Rethrow other errors
+    }
+  }
 
   const oracleAddress: { [chainName: string]: `0x${string}` } = {}
   if (type == "reporter") {
