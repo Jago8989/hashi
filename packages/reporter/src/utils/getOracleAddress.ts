@@ -2,7 +2,7 @@ import axios from "axios"
 import { Chain } from "viem"
 import { parse } from "yaml"
 
-const getValue = (key: string, obj: any) => {
+const normalizedValue = (key: string, obj: any) => {
   key = key.toLowerCase().replace(/\s+/g, "") // Normalize key
   for (const originalKey of Object.keys(obj)) {
     const normalizedKey = originalKey.toLowerCase().replace(/_/g, "").replace(/\s+/g, "") // Normalize existing keys
@@ -27,9 +27,11 @@ const filterUnmatchChainName = (chainName: string) => {
 const concatOracleName = (oracleName: string) => {
   if (oracleName == "layerzero") {
     return "lz"
-  } // TODO
+  } else {
+    return oracleName.toLowerCase()
+  }
 }
-async function readOracleAddress(oracle: string, type: string, sourceChain: Chain, destinationChains: Chain[]) {
+async function getOracleAddress(oracle: string, type: string, sourceChain: Chain, destinationChains: Chain[]) {
   const url = `https://raw.githubusercontent.com/crosschain-alliance/hashi-registry/refs/heads/main/oracles/${oracle}/address.yaml`
 
   const response = await axios.get(url)
@@ -37,8 +39,14 @@ async function readOracleAddress(oracle: string, type: string, sourceChain: Chai
 
   const oracleAddress: { [chainName: string]: `0x${string}` } = {}
   if (type == "reporter") {
+    if (oracle == "wormhole") {
+      return normalizedValue(
+        `${filterUnmatchChainName(sourceChain.name)}` + `${concatOracleName(oracle)}` + `${type}`,
+        data,
+      )
+    }
     destinationChains.forEach((chains) => {
-      oracleAddress[chains.name] = getValue(
+      oracleAddress[chains.name] = normalizedValue(
         `${filterUnmatchChainName(sourceChain.name)}` + `${concatOracleName(oracle)}` + `${type}`,
         data,
       )
@@ -46,7 +54,7 @@ async function readOracleAddress(oracle: string, type: string, sourceChain: Chai
   } else if (type == "adapter") {
     destinationChains.forEach((chains) => {
       console.log("chain ", chains.name)
-      oracleAddress[chains.name] = getValue(
+      oracleAddress[chains.name] = normalizedValue(
         `${filterUnmatchChainName(chains.name)}` + `${concatOracleName(oracle)}` + `${type}`,
         data,
       )
@@ -56,4 +64,4 @@ async function readOracleAddress(oracle: string, type: string, sourceChain: Chai
   return oracleAddress
 }
 
-export default readOracleAddress
+export default getOracleAddress

@@ -1,21 +1,5 @@
-import {
-  arbitrum,
-  arbitrumSepolia,
-  avalanche,
-  base,
-  bsc,
-  bscTestnet,
-  gnosis,
-  gnosisChiado,
-  goerli,
-  optimism,
-  optimismGoerli,
-  polygon,
-  mainnet,
-  sepolia,
-  baseSepolia,
-} from "viem/chains"
 import * as chains from "viem/chains"
+import { gnosis, gnosisChiado } from "viem/chains"
 import { Chain } from "viem"
 import { logger } from "@gnosis/hashi-common"
 
@@ -25,6 +9,7 @@ import WormholeReporterController from "./controllers/WormholeReporterController
 
 import Coordinator from "./Coordinator"
 import { settings } from "./settings/index"
+import getOracleAddress from "./utils/readAddress"
 ;(async () => {
   const controllersEnabled = process.env.REPORTERS_ENABLED?.split(",")
 
@@ -33,8 +18,7 @@ import { settings } from "./settings/index"
 
   const sourceChain: Chain = Object.values(chains).find((_chain) => _chain.id === sourceChainId) as Chain
   const destinationChains: Chain[] = Object.values(chains).filter((_chain) => destinationChainIds?.includes(_chain.id))
-  const unidirectionalAdaptersAddresses = settings.contractAddresses.adapterAddresses.unidirectional as any
-  const unidirectionalReportersAddresses = settings.contractAddresses.reporterAddresses.unidirectional as any
+
   const lightClientAddresses = settings.contractAddresses.lightClientAddresses as any
 
   const multiClient = new Multiclient({
@@ -50,14 +34,8 @@ import { settings } from "./settings/index"
     destinationChains: destinationChains.filter(({ name }) => name === gnosis.name || name === gnosisChiado.name),
     logger,
     multiClient,
-    reporterAddresses: {
-      [gnosis.name]: unidirectionalReportersAddresses[sourceChain.name]?.[gnosis.name]?.AMBReporter,
-      [gnosisChiado.name]: unidirectionalReportersAddresses[sourceChain.name]?.[gnosisChiado.name]?.AMBReporter,
-    },
-    adapterAddresses: {
-      [gnosis.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[gnosis.name]?.AMBAdapter,
-      [gnosisChiado.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[gnosisChiado.name]?.AMBAdapter,
-    },
+    reporterAddresses: await getOracleAddress("amb", "reporter", sourceChain, destinationChains),
+    adapterAddresses: await getOracleAddress("amb", "adapter", sourceChain, destinationChains),
   })
 
   const sygmaReporterController = new StandardReporterController({
@@ -67,12 +45,8 @@ import { settings } from "./settings/index"
     destinationChains,
     logger,
     multiClient,
-    reporterAddresses: {
-      [gnosis.name]: unidirectionalReportersAddresses[sourceChain.name]?.[gnosis.name]?.SygmaReporter,
-    },
-    adapterAddresses: {
-      [gnosis.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.Gnosis?.SygmaAdapter,
-    },
+    reporterAddresses: await getOracleAddress("sygma", "reporter", sourceChain, destinationChains),
+    adapterAddresses: await getOracleAddress("sygma", "adapter", sourceChain, destinationChains),
   })
 
   const wormholeReporterController = new WormholeReporterController({
@@ -81,15 +55,8 @@ import { settings } from "./settings/index"
     destinationChains,
     logger,
     multiClient,
-    reporterAddress: (settings.contractAddresses.reporterAddresses as any)[sourceChain.name]?.WormholeReporter,
-    adapterAddresses: {
-      // [gnosis.name]: (settings.contractAddresses.adapterAddresses as any)?.Gnosis?.WormholeAdapter,
-      // [optimism.name]: (settings.contractAddresses.adapterAddresses as any)["OP Mainnet"]?.WormholeAdapter,
-      // [bsc.name]: (settings.contractAddresses.adapterAddresses as any)["BNB Smart Chain"]?.WormholeAdapter,
-      // [polygon.name]: (settings.contractAddresses.adapterAddresses as any)?.Polygon.WormholeAdapter,
-      // [avalanche.name]: (settings.contractAddresses.adapterAddresses as any)?.Avalanche.WormholeAdapter,
-      [gnosisChiado.name]: (settings.contractAddresses.adapterAddresses as any)?.[gnosisChiado.name]?.WormholeAdapter,
-    },
+    reporterAddress: await getOracleAddress("wormhole", "reporter", sourceChain, destinationChains),
+    adapterAddresses: await getOracleAddress("wormhole", "adapter", sourceChain, destinationChains),
     wormholeScanBaseUrl: settings.reporterControllers.WormholeReporterController.wormholeScanBaseUrl,
     wormholeAddress: (settings.contractAddresses as any)[sourceChain.name]?.Wormhole,
     wormholeChainIds: settings.reporterControllers.WormholeReporterController.wormholeChainIds,
@@ -102,12 +69,8 @@ import { settings } from "./settings/index"
     destinationChains,
     logger,
     multiClient,
-    reporterAddresses: {
-      [bsc.name]: unidirectionalReportersAddresses[sourceChain.name]?.[bsc.name]?.AxelarReporter,
-    },
-    adapterAddresses: {
-      [bsc.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[bsc.name]?.AxelarAdapter,
-    },
+    reporterAddresses: await getOracleAddress("axelar", "reporter", sourceChain, destinationChains),
+    adapterAddresses: await getOracleAddress("axelar", "adapter", sourceChain, destinationChains),
     reportHeadersValue: settings.reporterControllers.AxelarReporterController.reportHeadersValue,
   })
 
@@ -118,12 +81,8 @@ import { settings } from "./settings/index"
     destinationChains,
     logger,
     multiClient,
-    reporterAddresses: {
-      [gnosis.name]: unidirectionalReportersAddresses[sourceChain.name]?.[gnosis.name]?.ConnextReporter,
-    },
-    adapterAddresses: {
-      [gnosis.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[gnosis.name]?.ConnextAdapter,
-    },
+    reporterAddresses: await getOracleAddress("connext", "reporter", sourceChain, destinationChains),
+    adapterAddresses: await getOracleAddress("connext", "adapter", sourceChain, destinationChains),
     reportHeadersValue: settings.reporterControllers.ConnextReporterController.reportHeadersValue,
   })
 
@@ -134,12 +93,8 @@ import { settings } from "./settings/index"
     destinationChains,
     logger,
     multiClient,
-    reporterAddresses: {
-      [polygon.name]: unidirectionalReportersAddresses[sourceChain.name]?.[polygon.name]?.CelerReporter,
-    },
-    adapterAddresses: {
-      [polygon.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[polygon.name]?.CelerAdapter,
-    },
+    reporterAddresses: await getOracleAddress("celer", "reporter", sourceChain, destinationChains),
+    adapterAddresses: await getOracleAddress("celer", "adapter", sourceChain, destinationChains),
     reportHeadersValue: settings.reporterControllers.CelerReporterController.reportHeadersValue,
   })
 
@@ -150,8 +105,8 @@ import { settings } from "./settings/index"
     destinationChains,
     logger,
     multiClient,
-    reporterAddresses: await readOracleAddress("layerzero", "reporter", sourceChain, destinationChains),
-    adapterAddresses: await readOracleAddress("layerzero", "adapter", sourceChain, destinationChains),
+    reporterAddresses: await getOracleAddress("layerzero", "reporter", sourceChain, destinationChains),
+    adapterAddresses: await getOracleAddress("layerzero", "adapter", sourceChain, destinationChains),
     reportHeadersValue: settings.reporterControllers.LayerZeroReporterController.reportHeadersValue,
   })
 
@@ -162,12 +117,8 @@ import { settings } from "./settings/index"
     destinationChains,
     logger,
     multiClient,
-    reporterAddresses: {
-      [bsc.name]: unidirectionalReportersAddresses[sourceChain.name]?.[bsc.name]?.HyperlaneReporter,
-    },
-    adapterAddresses: {
-      [bsc.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[bsc.name]?.HyperlaneAdapter,
-    },
+    reporterAddresses: await getOracleAddress("hyperlane", "reporter", sourceChain, destinationChains),
+    adapterAddresses: await getOracleAddress("hyperlane", "adapter", sourceChain, destinationChains),
   })
 
   const ccipReporterController = new StandardReporterController({
@@ -177,18 +128,8 @@ import { settings } from "./settings/index"
     destinationChains,
     logger,
     multiClient,
-    reporterAddresses: {
-      [optimismGoerli.name]: unidirectionalReportersAddresses[sourceChain.name]?.[optimismGoerli.name]?.CCIPReporter,
-      [bscTestnet.name]: unidirectionalReportersAddresses[sourceChain.name]?.[bscTestnet.name]?.CCIPReporter,
-      [avalanche.name]: unidirectionalReportersAddresses[sourceChain.name]?.[avalanche.name]?.CCIPReporter,
-      [gnosisChiado.name]: unidirectionalReportersAddresses[sourceChain.name]?.[gnosisChiado.name]?.CCIPReporter,
-    },
-    adapterAddresses: {
-      [optimismGoerli.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[optimismGoerli.name]?.CCIPAdapter,
-      [bscTestnet.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[bscTestnet.name]?.CCIPAdapter,
-      [avalanche.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[avalanche.name]?.CCIPAdapter,
-      [gnosisChiado.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[gnosisChiado.name]?.CCIPAdapter,
-    },
+    reporterAddresses: await getOracleAddress("ccip", "reporter", sourceChain, destinationChains),
+    adapterAddresses: await getOracleAddress("ccip", "adapter", sourceChain, destinationChains),
     reportHeadersValue: settings.reporterControllers.CCIPReporterController.reportHeadersValue,
   })
 
@@ -199,12 +140,8 @@ import { settings } from "./settings/index"
     destinationChains,
     logger,
     multiClient,
-    reporterAddresses: {
-      [bscTestnet.name]: unidirectionalReportersAddresses[sourceChain.name]?.[bscTestnet.name]?.ZetaChainReporter,
-    },
-    adapterAddresses: {
-      [bscTestnet.name]: unidirectionalAdaptersAddresses[sourceChain.name]?.[bscTestnet.name]?.ZetaChainAdapter,
-    },
+    reporterAddresses: await getOracleAddress("zeta", "reporter", sourceChain, destinationChains),
+    adapterAddresses: await getOracleAddress("zeta", "adapter", sourceChain, destinationChains),
     reportHeadersValue: settings.reporterControllers.ZetaReporterController.reportHeadersValue,
   })
 
