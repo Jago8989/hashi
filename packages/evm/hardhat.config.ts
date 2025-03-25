@@ -60,6 +60,7 @@ function getChainConfig(chain: keyof typeof chainIds): NetworkUserConfig {
       default:
         jsonRpcUrl = `https://${chain}.infura.io/v3/${infuraApiKey}`
     }
+    
   }
 
   return {
