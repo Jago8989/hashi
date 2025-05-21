@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 library Merkle {
     uint256 internal constant SLOTS_PER_HISTORICAL_ROOT = 8192;
     // BeaconState -> BlockRoots
-    uint256 internal constant BLOCK_ROOTS_GINDEX = 37;
+    uint256 internal constant BLOCK_ROOTS_GINDEX = 69;
     // BeaconBlock -> BeaconState
     uint256 internal constant STATE_ROOT_GINDEX = 11;
     // BeaconBlock -> BeaconBody -> ExecutionPayload -> ReceiptsRoot
